@@ -14,7 +14,7 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 def get_kite_client():
     creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
     client = gspread.authorize(creds)
-    sheet = client.open(SHEET_NAME).sheet1
+    sheet = client.open_by_key("1mANuCob4dz3jvjigeO1km96vBzZHr-4ZflZEXxR8-qU").sheet1
     api_key = sheet.cell(1, 1).value
     api_secret = sheet.cell(1, 2).value
     access_token = sheet.cell(1, 3).value
