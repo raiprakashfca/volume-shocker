@@ -93,13 +93,13 @@ if st.button("🔄 Refresh Data"):
     df_instruments = pd.DataFrame(instruments)
 
     results = []
-    progress = st.progress(0)
+    
 
     for idx, symbol in enumerate(nifty150_symbols):
         sector = symbol_to_sector.get(symbol, 'Others')
         if sector not in selected_sectors:
             continue
-        progress.progress((idx + 1) / len(nifty100_symbols))
+        with st.spinner(f"Scanning {symbol} ({idx+1}/{len(nifty150_symbols)})..."):
 
         try:
             row = df_instruments[df_instruments['tradingsymbol'] == symbol]
