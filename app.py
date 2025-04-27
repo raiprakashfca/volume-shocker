@@ -100,8 +100,7 @@ if st.button("🔄 Refresh Data"):
         if sector not in selected_sectors:
             continue
         with st.spinner(f"Scanning {symbol} ({idx+1}/{len(nifty150_symbols)})..."):
-
-        try:
+            try:
             row = df_instruments[df_instruments['tradingsymbol'] == symbol]
             if row.empty:
                 continue
