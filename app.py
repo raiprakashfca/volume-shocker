@@ -94,18 +94,17 @@ if st.button("🔄 Refresh Data"):
 
     results = []
     
+for idx, symbol in enumerate(nifty150_symbols):
+    sector = symbol_to_sector.get(symbol, 'Others')
+    if sector not in selected_sectors:
+        continue
+    with st.spinner(f"Scanning {symbol} ({idx+1}/{len(nifty150_symbols)})..."):
+        try:
+            row = df_instruments[df_instruments['tradingsymbol'] == symbol]
+            if row.empty:
+                continue
 
-    for idx, symbol in enumerate(nifty150_symbols):
-        sector = symbol_to_sector.get(symbol, 'Others')
-        if sector not in selected_sectors:
-            continue
-        with st.spinner(f"Scanning {symbol} ({idx+1}/{len(nifty150_symbols)})..."):
-            try:
-                row = df_instruments[df_instruments['tradingsymbol'] == symbol]
-                if row.empty:
-                    continue
-
-                token = int(row['instrument_token'].values[0])
+            token = int(row['instrument_token'].values[0])
 
             today = datetime.now()
             from_date = today - timedelta(days=7)
@@ -122,7 +121,6 @@ if st.button("🔄 Refresh Data"):
             if df.empty:
                 continue
 
-            # Extract today's data
             df['date'] = pd.to_datetime(df['date'])
             df_today = df[df['date'].dt.date == today.date()]
 
@@ -131,7 +129,6 @@ if st.button("🔄 Refresh Data"):
 
             today_volume = df_today['volume'].sum()
 
-            # Calculate historical average volume till this time
             historical_days = df['date'].dt.date.unique()
             historical_days = [d for d in historical_days if d != today.date()]
 
@@ -159,6 +156,7 @@ if st.button("🔄 Refresh Data"):
 
         except Exception as e:
             st.warning(f"⚠️ Skipping {symbol}: {e}")
+
 
     if results:
         df_results = pd.DataFrame(results).sort_values(by="Surge Ratio", ascending=False)
