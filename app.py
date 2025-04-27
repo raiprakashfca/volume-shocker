@@ -93,70 +93,70 @@ if st.button("🔄 Refresh Data"):
     df_instruments = pd.DataFrame(instruments)
 
     results = []
-    
-for idx, symbol in enumerate(nifty150_symbols):
-    sector = symbol_to_sector.get(symbol, 'Others')
-    if sector not in selected_sectors:
-        continue
-    with st.spinner(f"Scanning {symbol} ({idx+1}/{len(nifty150_symbols)})..."):
-        try:
-            row = df_instruments[df_instruments['tradingsymbol'] == symbol]
-            if row.empty:
-                continue
 
-            token = int(row['instrument_token'].values[0])
+    for idx, symbol in enumerate(nifty150_symbols):
+        sector = symbol_to_sector.get(symbol, 'Others')
+        if sector not in selected_sectors:
+            continue
 
-            today = datetime.now()
-            from_date = today - timedelta(days=7)
+        with st.spinner(f"Scanning {symbol} ({idx+1}/{len(nifty150_symbols)})..."):
+            try:
+                row = df_instruments[df_instruments['tradingsymbol'] == symbol]
+                if row.empty:
+                    continue
 
-            historical = kite.historical_data(
-                instrument_token=token,
-                from_date=from_date,
-                to_date=today,
-                interval=interval
-            )
+                token = int(row['instrument_token'].values[0])
 
-            df = pd.DataFrame(historical)
+                today = datetime.now()
+                from_date = today - timedelta(days=7)
 
-            if df.empty:
-                continue
+                historical = kite.historical_data(
+                    instrument_token=token,
+                    from_date=from_date,
+                    to_date=today,
+                    interval=interval
+                )
 
-            df['date'] = pd.to_datetime(df['date'])
-            df_today = df[df['date'].dt.date == today.date()]
+                df = pd.DataFrame(historical)
 
-            if df_today.empty:
-                continue
+                if df.empty:
+                    continue
 
-            today_volume = df_today['volume'].sum()
+                df['date'] = pd.to_datetime(df['date'])
+                df_today = df[df['date'].dt.date == today.date()]
 
-            historical_days = df['date'].dt.date.unique()
-            historical_days = [d for d in historical_days if d != today.date()]
+                if df_today.empty:
+                    continue
 
-            cumulative_volumes = []
-            for day in historical_days:
-                day_volume = df[(df['date'].dt.date == day) & (df['date'].dt.time <= datetime.now().time())]['volume'].sum()
-                cumulative_volumes.append(day_volume)
+                today_volume = df_today['volume'].sum()
 
-            avg_volume = sum(cumulative_volumes) / len(cumulative_volumes) if cumulative_volumes else 0
+                historical_days = df['date'].dt.date.unique()
+                historical_days = [d for d in historical_days if d != today.date()]
 
-            ltp = df_today['close'].iloc[-1]
-            pct_change = ((df_today['close'].iloc[-1] - df_today['open'].iloc[0]) / df_today['open'].iloc[0]) * 100
+                cumulative_volumes = []
+                for day in historical_days:
+                    day_volume = df[(df['date'].dt.date == day) & (df['date'].dt.time <= datetime.now().time())]['volume'].sum()
+                    cumulative_volumes.append(day_volume)
 
-            surge_ratio = today_volume / avg_volume if avg_volume else 0
+                avg_volume = sum(cumulative_volumes) / len(cumulative_volumes) if cumulative_volumes else 0
 
-            if surge_ratio >= threshold:
-                results.append({
-                    "Symbol": symbol,
-                    "LTP": round(ltp, 2),
-                    "Today's Volume": int(today_volume),
-                    "7-Day Avg Volume": int(avg_volume),
-                    "Surge Ratio": round(surge_ratio, 2),
-                    "% Change": round(pct_change, 2)
-                })
+                ltp = df_today['close'].iloc[-1]
+                pct_change = ((df_today['close'].iloc[-1] - df_today['open'].iloc[0]) / df_today['open'].iloc[0]) * 100
 
-        except Exception as e:
-            st.warning(f"⚠️ Skipping {symbol}: {e}")
+                surge_ratio = today_volume / avg_volume if avg_volume else 0
 
+                if surge_ratio >= threshold:
+                    results.append({
+                        "Symbol": symbol,
+                        "LTP": round(ltp, 2),
+                        "Today's Volume": int(today_volume),
+                        "7-Day Avg Volume": int(avg_volume),
+                        "Surge Ratio": round(surge_ratio, 2),
+                        "% Change": round(pct_change, 2)
+                    })
+
+            except Exception as e:
+                st.warning(f"⚠️ Skipping {symbol}: {e}")
 
     if results:
         df_results = pd.DataFrame(results).sort_values(by="Surge Ratio", ascending=False)
