@@ -43,7 +43,7 @@ if st.button("🔄 Refresh Data"):
             ltp = today['Close']
             pct_change = ((today['Close'] - today['Open']) / today['Open']) * 100
 
-            surge_ratio = today_volume / avg_volume if avg_volume else 0
+            surge_ratio = float(today_volume) / float(avg_volume) if avg_volume else 0
 
             if surge_ratio >= threshold:
                 results.append({
