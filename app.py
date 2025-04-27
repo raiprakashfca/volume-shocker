@@ -102,8 +102,8 @@ if st.button("🔄 Refresh Data"):
         with st.spinner(f"Scanning {symbol} ({idx+1}/{len(nifty150_symbols)})..."):
             try:
                 row = df_instruments[df_instruments['tradingsymbol'] == symbol]
-            if row.empty:
-                continue
+                if row.empty:
+                    continue
             token = int(row['instrument_token'].values[0])
 
             today = datetime.now()
