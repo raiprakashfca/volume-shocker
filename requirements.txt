@@ -3,3 +3,4 @@ pandas
 kiteconnect
 gspread
 google-auth
+streamlit-autorefresh
