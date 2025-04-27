@@ -1,24 +1,46 @@
 import streamlit as st
 import pandas as pd
-import yfinance as yf
+import gspread
+from kiteconnect import KiteConnect
+from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="📈 Volume Shocker Screener", layout="wide")
+st.set_page_config(page_title="📈 Volume Shocker Screener (Zerodha)", layout="wide")
 
-# Load NIFTY100 symbols (hardcoded for now)
+# Load API credentials from Google Sheet
+SHEET_NAME = "ZerodhaTokenStore"
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+def get_kite_client():
+    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
+    client = gspread.authorize(creds)
+    sheet = client.open(SHEET_NAME).sheet1
+    api_key = sheet.cell(1, 1).value
+    api_secret = sheet.cell(1, 2).value
+    access_token = sheet.cell(1, 3).value
+
+    kite = KiteConnect(api_key=api_key)
+    kite.set_access_token(access_token)
+    return kite
+
+# NIFTY100 symbols (example subset)
 nifty100_symbols = [
-    'RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS',
-    'KOTAKBANK.NS', 'LT.NS', 'SBIN.NS', 'AXISBANK.NS', 'HINDUNILVR.NS'
-    # Add rest later for full list
+    'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK',
+    'KOTAKBANK', 'LT', 'SBIN', 'AXISBANK', 'HINDUNILVR'
 ]
 
-st.title("📈 NIFTY100 Volume Shocker Screener")
+st.title("📈 NIFTY100 Volume Shocker Screener (Live from Zerodha)")
 
-# Surge Threshold Multiplier
 threshold = st.slider("Select Surge Threshold (e.g., 2x, 3x)", 1.0, 5.0, 2.0, step=0.1)
+interval = st.selectbox("Select Time Interval", ["5minute", "15minute"], index=1)
 
-# Refresh Button
 if st.button("🔄 Refresh Data"):
+
+    kite = get_kite_client()
+
+    # Load instrument dump
+    instruments = kite.instruments(exchange="NSE")
+    df_instruments = pd.DataFrame(instruments)
 
     results = []
     progress = st.progress(0)
@@ -27,27 +49,54 @@ if st.button("🔄 Refresh Data"):
         progress.progress((idx + 1) / len(nifty100_symbols))
 
         try:
-            end_date = datetime.today()
-            start_date = end_date - timedelta(days=15)
+            row = df_instruments[df_instruments['tradingsymbol'] == symbol]
+            if row.empty:
+                continue
+            token = int(row['instrument_token'].values[0])
 
-            data = yf.download(symbol, start=start_date, end=end_date, interval='1d')
+            today = datetime.now()
+            from_date = today - timedelta(days=7)
 
-            if data.empty or len(data) < 8:
+            historical = kite.historical_data(
+                instrument_token=token,
+                from_date=from_date,
+                to_date=today,
+                interval=interval
+            )
+
+            df = pd.DataFrame(historical)
+
+            if df.empty:
                 continue
 
-            last_7_days = data.iloc[-8:-1]
-            today = data.iloc[-1]
+            # Extract today's data
+            df['date'] = pd.to_datetime(df['date'])
+            df_today = df[df['date'].dt.date == today.date()]
 
-            avg_volume = last_7_days['Volume'].mean()
-            today_volume = today['Volume']
-            ltp = today['Close']
-            pct_change = ((today['Close'] - today['Open']) / today['Open']) * 100
+            if df_today.empty:
+                continue
 
-            surge_ratio = float(today_volume) / float(avg_volume) if avg_volume else 0
+            today_volume = df_today['volume'].sum()
+
+            # Calculate historical average volume till this time
+            historical_days = df['date'].dt.date.unique()
+            historical_days = [d for d in historical_days if d != today.date()]
+
+            cumulative_volumes = []
+            for day in historical_days:
+                day_volume = df[(df['date'].dt.date == day) & (df['date'].dt.time <= datetime.now().time())]['volume'].sum()
+                cumulative_volumes.append(day_volume)
+
+            avg_volume = sum(cumulative_volumes) / len(cumulative_volumes) if cumulative_volumes else 0
+
+            ltp = df_today['close'].iloc[-1]
+            pct_change = ((df_today['close'].iloc[-1] - df_today['open'].iloc[0]) / df_today['open'].iloc[0]) * 100
+
+            surge_ratio = today_volume / avg_volume if avg_volume else 0
 
             if surge_ratio >= threshold:
                 results.append({
-                    "Symbol": symbol.replace(".NS", ""),
+                    "Symbol": symbol,
                     "LTP": round(ltp, 2),
                     "Today's Volume": int(today_volume),
                     "7-Day Avg Volume": int(avg_volume),
