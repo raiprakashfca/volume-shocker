@@ -104,7 +104,8 @@ if st.button("🔄 Refresh Data"):
                 row = df_instruments[df_instruments['tradingsymbol'] == symbol]
                 if row.empty:
                     continue
-            token = int(row['instrument_token'].values[0])
+
+                token = int(row['instrument_token'].values[0])
 
             today = datetime.now()
             from_date = today - timedelta(days=7)
