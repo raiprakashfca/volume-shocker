@@ -24,8 +24,8 @@ def get_kite_client():
     kite.set_access_token(access_token)
     return kite
 
-# NIFTY100 symbols (example subset)
-nifty100_symbols = [
+# NIFTY150 symbols (example subset)
+nifty150_symbols = [
     'ADANIENT', 'ADANIPORTS', 'APOLLOHOSP', 'ASIANPAINT', 'AXISBANK',
     'BAJAJ_AUTO', 'BAJFINANCE', 'BAJAJFINSV', 'BPCL', 'BHARTIARTL',
     'BRITANNIA', 'CIPLA', 'COALINDIA', 'DIVISLAB', 'DRREDDY',
@@ -43,10 +43,38 @@ nifty100_symbols = [
     'PEL', 'PETRONET', 'PIDILITIND', 'PIIND', 'PGHH',
     'PNB', 'SBICARD', 'SHREECEM', 'SIEMENS', 'SRF',
     'TORNTPHARM', 'TVSMOTOR', 'UBL', 'VEDL', 'VOLTAS',
-    'ZYDUSLIFE'
+    'ZYDUSLIFE',
+    'ATGL', 'AUBANK', 'BANDHANBNK', 'BANKINDIA', 'BALKRISIND',
+    'CHOLAFIN', 'CUMMINSIND', 'GMRINFRA', 'GODREJPROP', 'HDFCAMC',
+    'ICICIGI', 'ICICIPRULI', 'INDHOTEL', 'INDUSTOWER', 'JINDALSTEL',
+    'LICHSGFIN', 'LODHA', 'MOTHERSON', 'MRF', 'MUTHOOTFIN',
+    'OBEROIRLTY', 'PAGEIND', 'PERSISTENT', 'PIIND', 'PNB',
+    'POLYCAB', 'RECLTD', 'SAIL', 'SHRIRAMFIN', 'TVSMOTOR',
+    'TORNTPOWER', 'TRENT', 'UNIONBANK', 'VBL', 'VARUNBEV',
+    'ZEEL', 'ZENSARTECH', 'CANBK', 'COFORGE', 'CROMPTON',
+    'DEEPAKNTR', 'ESCORTS', 'HAL', 'IDFCFIRSTB', 'LTTS',
+    'NMDC', 'PEL', 'PFIZER', 'SRF', 'SUNTV'
 ]
 
-st.title("📈 NIFTY100 Volume Shocker Screener (Live from Zerodha)")
+st.title("📈 NIFTY100+Midcap50 Volume Shocker Screener (Live from Zerodha)")
+
+# Sector Mapping (sample mapping, can expand)
+symbol_to_sector = {
+    'RELIANCE': 'Energy', 'TCS': 'IT', 'INFY': 'IT', 'HDFCBANK': 'Bank', 'ICICIBANK': 'Bank',
+    'KOTAKBANK': 'Bank', 'LT': 'Infra', 'SBIN': 'Bank', 'AXISBANK': 'Bank', 'HINDUNILVR': 'FMCG',
+    'BAJFINANCE': 'NBFC', 'BAJAJFINSV': 'NBFC', 'HCLTECH': 'IT', 'WIPRO': 'IT', 'SUNPHARMA': 'Pharma',
+    'DRREDDY': 'Pharma', 'TATAMOTORS': 'Auto', 'MARUTI': 'Auto', 'EICHERMOT': 'Auto', 'M&M': 'Auto',
+    'ULTRACEMCO': 'Cement', 'NESTLEIND': 'FMCG', 'DIVISLAB': 'Pharma', 'POWERGRID': 'Power',
+    'COALINDIA': 'Energy', 'NTPC': 'Power', 'JSWSTEEL': 'Metals', 'TATASTEEL': 'Metals',
+    'ADANIENT': 'Conglomerate', 'ADANIPORTS': 'Infra', 'DABUR': 'FMCG', 'BRITANNIA': 'FMCG',
+    'PIDILITIND': 'Chemicals', 'BERGEPAINT': 'Chemicals', 'HDFCLIFE': 'Insurance', 'ICICIPRULI': 'Insurance',
+    'SBICARD': 'NBFC', 'LICHSGFIN': 'NBFC', 'PNB': 'Bank', 'BANKBARODA': 'Bank', 'IDFCFIRSTB': 'Bank'
+    # and so on...
+}
+
+# Sector Filter
+available_sectors = list(set(symbol_to_sector.values()))
+selected_sectors = st.sidebar.multiselect("Select Sectors", options=available_sectors, default=available_sectors)
 
 st.caption(f"Last updated at {datetime.now().strftime('%H:%M:%S')}")
 
@@ -67,7 +95,10 @@ if st.button("🔄 Refresh Data"):
     results = []
     progress = st.progress(0)
 
-    for idx, symbol in enumerate(nifty100_symbols):
+    for idx, symbol in enumerate(nifty150_symbols):
+        sector = symbol_to_sector.get(symbol, 'Others')
+        if sector not in selected_sectors:
+            continue
         progress.progress((idx + 1) / len(nifty100_symbols))
 
         try:
