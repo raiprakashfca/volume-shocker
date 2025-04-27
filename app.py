@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import gspread
 from kiteconnect import KiteConnect
@@ -25,11 +26,24 @@ def get_kite_client():
 
 # NIFTY100 symbols (example subset)
 nifty100_symbols = [
-    'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK',
-    'KOTAKBANK', 'LT', 'SBIN', 'AXISBANK', 'HINDUNILVR'
+    'ADANIENT', 'ADANIPORTS', 'APOLLOHOSP', 'ASIANPAINT', 'AXISBANK',
+    'BAJAJ_AUTO', 'BAJFINANCE', 'BAJAJFINSV', 'BPCL', 'BHARTIARTL',
+    'BRITANNIA', 'CIPLA', 'COALINDIA', 'DIVISLAB', 'DRREDDY',
+    'EICHERMOT', 'GRASIM', 'HCLTECH', 'HDFCBANK', 'HDFCLIFE',
+    'HEROMOTOCO', 'HINDALCO', 'HINDUNILVR', 'ICICIBANK', 'ITC',
+    'INDUSINDBK', 'INFY', 'JSWSTEEL', 'KOTAKBANK', 'LT',
+    'M&M', 'MARUTI', 'NTPC', 'NESTLEIND', 'ONGC',
+    'POWERGRID', 'RELIANCE', 'SBILIFE', 'SBIN', 'SUNPHARMA',
+    'TCS', 'TATACONSUM', 'TATAMOTORS', 'TATASTEEL', 'TECHM',
+    'TITAN', 'ULTRACEMCO', 'UPL', 'WIPRO'
 ]
 
 st.title("📈 NIFTY100 Volume Shocker Screener (Live from Zerodha)")
+
+st.caption(f"Last updated at {datetime.now().strftime('%H:%M:%S')}")
+
+# Auto-refresh every 5 minutes automatically
+count = st_autorefresh(interval=300000, limit=None, key="auto_refresh")
 
 threshold = st.slider("Select Surge Threshold (e.g., 2x, 3x)", 1.0, 5.0, 2.0, step=0.1)
 interval = st.selectbox("Select Time Interval", ["5minute", "15minute"], index=1)
@@ -110,7 +124,8 @@ if st.button("🔄 Refresh Data"):
     if results:
         df_results = pd.DataFrame(results).sort_values(by="Surge Ratio", ascending=False)
         st.success(f"✅ {len(df_results)} stocks found above {threshold}x surge.")
-        st.dataframe(df_results, use_container_width=True)
+        styled_df = df_results.style.apply(lambda x: ['background-color: lightgreen' if v >= threshold * 1.5 else ('background-color: lightyellow' if v >= threshold else '') for v in x['Surge Ratio']], axis=1)
+        st.dataframe(styled_df, use_container_width=True)
 
         csv = df_results.to_csv(index=False).encode('utf-8')
         st.download_button(
